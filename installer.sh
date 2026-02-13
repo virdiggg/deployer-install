@@ -201,39 +201,37 @@ fi
 # ===============================
 # DOWNLOAD REPO
 # ===============================
+
 echo -e "${BLUE}Menyiapkan Repository Deployer (Download ZIP)...${NC}"
-
+TARGET_DIR="$HOME/deployer"
 REPO_URL="https://github.com/virdiggg/deployer"
-BRANCH="main"
-FOLDER_NAME="deployer"
-ZIP_FILE="deployer.zip"
+BRANCH="master"
+ZIP_FILE="/tmp/deployer_temp.zip"
 
-# Hapus folder lama jika ada
-if [ -d "$FOLDER_NAME" ]; then
-    echo -e "${YELLOW}Folder lama ditemukan. Menghapus...${NC}"
-    rm -rf "$FOLDER_NAME"
+echo -e "${BLUE}Menyiapkan direktori target: $TARGET_DIR${NC}"
+
+if [ -d "$TARGET_DIR" ]; then
+    echo -e "${YELLOW}Folder lama ditemukan di $TARGET_DIR. Menghapus...${NC}"
+    rm -rf "$TARGET_DIR"
 fi
 
-# Hapus zip lama jika ada
-if [ -f "$ZIP_FILE" ]; then
-    rm -f "$ZIP_FILE"
-fi
-
-echo -e "${BLUE}Mengunduh repository sebagai ZIP...${NC}"
+echo -e "${BLUE}Mengunduh repository dari $BRANCH...${NC}"
 curl -L "$REPO_URL/archive/refs/heads/$BRANCH.zip" -o "$ZIP_FILE"
 
-echo -e "${BLUE}Mengekstrak file...${NC}"
-unzip -q "$ZIP_FILE"
+echo -e "${BLUE}Mengekstrak ke folder sementara...${NC}"
+TEMP_EXTRACT_DIR="/tmp/deployer_extract_$(date +%s)"
+mkdir -p "$TEMP_EXTRACT_DIR"
+unzip -q "$ZIP_FILE" -d "$TEMP_EXTRACT_DIR"
 
-# Rename folder hasil extract (biasanya REPO-DEPLOYER-main)
-EXTRACTED_FOLDER=$(unzip -Z -1 "$ZIP_FILE" | head -1 | cut -f1 -d"/")
+EXTRACTED_FOLDER=$(ls "$TEMP_EXTRACT_DIR")
 
-mv "$EXTRACTED_FOLDER" "$FOLDER_NAME"
+mv "$TEMP_EXTRACT_DIR/$EXTRACTED_FOLDER" "$TARGET_DIR"
 
-# Hapus zip setelah extract
 rm -f "$ZIP_FILE"
+rm -rf "$TEMP_EXTRACT_DIR"
 
-cd "$FOLDER_NAME"
+echo -e "${BLUE}Berhasil! Repository siap di: $TARGET_DIR${NC}"
+cd "$TARGET_DIR"
 
 # ===============================
 # INSTALL DEPENDENCIES
