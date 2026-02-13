@@ -2,13 +2,12 @@
 
 set -e # Berhenti jika ada error
 
-# Warna untuk output agar lebih cantik
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo -e "${BLUE}🔍 Mendeteksi Sistem Operasi...${NC}"
+echo -e "${BLUE}Mendeteksi Sistem Operasi...${NC}"
 
 if [ -f /etc/os-release ]; then
     . /etc/os-release
@@ -20,7 +19,7 @@ fi
 
 echo -e "${GREEN}OS terdeteksi: $OS${NC}"
 
-echo -e "${BLUE}📦 Menginstall Dependensi Dasar...${NC}"
+echo -e "${BLUE}Menginstall Dependensi Dasar...${NC}"
 
 case $OS in
     ubuntu|debian)
@@ -49,7 +48,7 @@ esac
 # ===============================
 # INSTALL DOCKER
 # ===============================
-echo -e "${BLUE}🐳 Mengecek Docker...${NC}"
+echo -e "${BLUE}Mengecek Docker...${NC}"
 
 if command -v docker &> /dev/null; then
     echo -e "${YELLOW}Docker sudah terpasang.${NC}"
@@ -90,7 +89,7 @@ fi
 # ===============================
 # INSTALL BUN
 # ===============================
-echo -e "${BLUE}⚡ Mengecek Bun Runtime...${NC}"
+echo -e "${BLUE}Mengecek Bun Runtime...${NC}"
 
 if command -v bun &> /dev/null; then
     echo -e "${YELLOW}Bun sudah terpasang. Melakukan upgrade...${NC}"
@@ -112,11 +111,99 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 # ===============================
+# INSTALL POSTGRESQL
+# ===============================
+echo -e "${BLUE}Mengecek PostgreSQL...${NC}"
+
+if command -v psql &> /dev/null; then
+    echo -e "${YELLOW}PostgreSQL sudah terpasang.${NC}"
+else
+    echo -e "${GREEN}PostgreSQL belum ditemukan. Memulai instalasi...${NC}"
+
+    case $OS in
+        ubuntu|debian)
+            sudo apt-get install -y postgresql postgresql-contrib
+            sudo systemctl enable postgresql
+            sudo systemctl start postgresql
+            ;;
+
+        centos|rhel|rocky|almalinux|fedora)
+            sudo dnf install -y postgresql-server postgresql-contrib
+            sudo postgresql-setup --initdb || true
+            sudo systemctl enable postgresql
+            sudo systemctl start postgresql
+            ;;
+
+        arch)
+            sudo pacman -Sy --noconfirm postgresql
+            sudo -u postgres initdb -D /var/lib/postgres/data || true
+            sudo systemctl enable postgresql
+            sudo systemctl start postgresql
+            ;;
+
+        *)
+            echo -e "${RED}Instalasi PostgreSQL belum didukung untuk OS ini.${NC}"
+            exit 1
+            ;;
+    esac
+fi
+
+
+# ===============================
+# INSTALL GO
+# ===============================
+echo -e "${BLUE}Mengecek Go...${NC}"
+
+if command -v go &> /dev/null; then
+    echo -e "${YELLOW}Go sudah terpasang.${NC}"
+else
+    echo -e "${GREEN}Go belum ditemukan. Memulai instalasi...${NC}"
+
+    case $OS in
+        ubuntu|debian)
+            sudo apt-get install -y golang
+            ;;
+
+        centos|rhel|rocky|almalinux|fedora)
+            sudo dnf install -y golang
+            ;;
+
+        arch)
+            sudo pacman -Sy --noconfirm go
+            ;;
+
+        *)
+            echo -e "${RED}Instalasi Go belum didukung untuk OS ini.${NC}"
+            exit 1
+            ;;
+    esac
+fi
+
+
+# ===============================
+# INSTALL PGROLL
+# ===============================
+echo -e "${BLUE}Mengecek pgroll...${NC}"
+
+if command -v pgroll &> /dev/null; then
+    echo -e "${YELLOW}pgroll sudah terpasang.${NC}"
+else
+    echo -e "${GREEN}pgroll belum ditemukan. Menginstall via go install...${NC}"
+
+    # Pastikan GOPATH/bin ada di PATH
+    export PATH=$PATH:$(go env GOPATH)/bin
+
+    go install github.com/xataio/pgroll@latest
+
+    echo -e "${GREEN}pgroll berhasil diinstall.${NC}"
+fi
+
+# ===============================
 # DOWNLOAD REPO
 # ===============================
-echo -e "${BLUE}📂 Menyiapkan Repository Deployer (Download ZIP)...${NC}"
+echo -e "${BLUE}Menyiapkan Repository Deployer (Download ZIP)...${NC}"
 
-REPO_URL="https://github.com/USER/REPO-DEPLOYER"
+REPO_URL="https://github.com/virdiggg/deployer"
 BRANCH="main"
 FOLDER_NAME="deployer"
 ZIP_FILE="deployer.zip"
@@ -132,10 +219,10 @@ if [ -f "$ZIP_FILE" ]; then
     rm -f "$ZIP_FILE"
 fi
 
-echo -e "${BLUE}⬇️  Mengunduh repository sebagai ZIP...${NC}"
+echo -e "${BLUE}Mengunduh repository sebagai ZIP...${NC}"
 curl -L "$REPO_URL/archive/refs/heads/$BRANCH.zip" -o "$ZIP_FILE"
 
-echo -e "${BLUE}📦 Mengekstrak file...${NC}"
+echo -e "${BLUE}Mengekstrak file...${NC}"
 unzip -q "$ZIP_FILE"
 
 # Rename folder hasil extract (biasanya REPO-DEPLOYER-main)
@@ -151,9 +238,9 @@ cd "$FOLDER_NAME"
 # ===============================
 # INSTALL DEPENDENCIES
 # ===============================
-echo -e "${BLUE}🛠  Menginstall Dependencies Project via Bun...${NC}"
+echo -e "${BLUE}Menginstall Dependencies Project via Bun...${NC}"
 bun install
 
-echo -e "${GREEN}✅ Setup Selesai!${NC}"
+echo -e "${GREEN}Setup Selesai!${NC}"
 echo -e "Silakan jalankan server dengan perintah:"
-echo -e "${YELLOW}cd elysia-deployer && bun run src/index.ts${NC}"
+echo -e "${YELLOW}cd deployer && bun run src/index.ts${NC}"
