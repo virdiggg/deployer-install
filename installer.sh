@@ -111,7 +111,7 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 # ===============================
-# INSTALL POSTGRESQL
+# INSTALL POSTGRESQL & CREATE USER
 # ===============================
 echo -e "${BLUE}Mengecek PostgreSQL...${NC}"
 
@@ -136,18 +136,35 @@ else
 
         arch)
             sudo pacman -Sy --noconfirm postgresql
-            sudo -u postgres initdb -D /var/lib/postgres/data || true
+            if [ ! -d /var/lib/postgres/data ]; then
+                sudo -u postgres initdb -D /var/lib/postgres/data
+            fi
             sudo systemctl enable postgresql
             sudo systemctl start postgresql
-            ;;
-
-        *)
-            echo -e "${RED}Instalasi PostgreSQL belum didukung untuk OS ini.${NC}"
-            exit 1
             ;;
     esac
 fi
 
+echo -e "${BLUE}Menunggu PostgreSQL siap...${NC}"
+until sudo -u postgres psql -c "select 1" > /dev/null 2>&1; do
+    echo -n "."
+    sleep 1
+done
+echo -e "\n${GREEN}PostgreSQL siap.${NC}"
+
+echo -e "${BLUE}Mengonfigurasi User Database...${NC}"
+DB_USER="supersuper"
+DB_PASS="defaultuser"
+
+USER_EXISTS=$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")
+
+if [ "$USER_EXISTS" != "1" ]; then
+    echo -e "${GREEN}Membuat user '$DB_USER' sebagai Superuser...${NC}"
+    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS' SUPERUSER;"
+else
+    echo -e "${YELLOW}User '$DB_USER' sudah ada. Memperbarui password...${NC}"
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS' SUPERUSER;"
+fi
 
 # ===============================
 # INSTALL GO
@@ -178,7 +195,6 @@ else
             ;;
     esac
 fi
-
 
 # ===============================
 # INSTALL PGROLL
